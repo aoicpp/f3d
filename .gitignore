@@ -1,0 +1,48 @@
+```
+# Build artifacts
+build/
+dist/
+
+# Executables and object files
+*.exe
+*.dll
+*.so
+*.a
+*.obj
+*.o
+*.out
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# C++ specific
+*.ilk
+*.pdb
+*.sdf
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build system files
+*.bat
+*.sh
+```
