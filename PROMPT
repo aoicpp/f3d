@@ -1,0 +1,1564 @@
+# Forestium3D Engine - Full Technical Specification Prompt
+
+## Overview
+
+Build a complete 3D game engine called **Forestium3D** (codename: f3d). The engine is written in C++ (C++20), uses OpenGL as the primary renderer (DirectX 11/12 support planned as TODO), and targets Windows, macOS, and Linux. The engine features a Roblox Studio-inspired ECS/scene graph, Luau scripting, Jolt Physics, FMOD audio (with miniaudio.h fallback), a custom Luau-like shading language, a full in-engine level editor with macOS-like professional UI, and a build pipeline that packages games into multi-file distributions.
+
+---
+
+## Naming Convention
+
+**ALL identifiers, file names, directory names, class names, function names, variable names, macro names, and asset names MUST use snake_case.**
+
+Examples:
+- forestium3d_engine.cpp (not Forestium3DEngine.cpp)
+- scene_graph_node (not SceneGraphNode)
+- render_thread (not RenderThread)
+- build_game.bat (not BuildGame.bat)
+
+---
+
+## Project Structure
+
+```
+forestium3d/
+├── libs/                          # Downloaded by setup.bat/setup.sh, P.S. FMOD will be downloaded by user manually and wont be included in libs/, will be in user's system
+│   ├── raylib/
+│   ├── jolt/
+│   ├── fmod/
+│   ├── miniaudio/
+│   ├── luau/
+│   ├── glfw/
+│   ├── glad/
+│   ├── stb/
+│   └── ...
+├── src/
+│   ├── engine/                    # Core engine source
+│   │   ├── core/
+│   │   │   ├── engine.cpp
+│   │   │   ├── engine.h
+│   │   │   ├── application.cpp
+│   │   │   ├── application.h
+│   │   │   ├── window.cpp
+│   │   │   ├── window.h
+│   │   │   ├── timer.cpp
+│   │   │   ├── timer.h
+│   │   │   ├── job_system.cpp
+│   │   │   ├── job_system.h
+│   │   │   ├── memory_arena.cpp
+│   │   │   ├── memory_arena.h
+│   │   │   ├── event_bus.cpp
+│   │   │   ├── event_bus.h
+│   │   │   ├── logger.cpp
+│   │   │   ├── logger.h
+│   │   │   ├── console.cpp
+│   │   │   ├── console.h
+│   │   │   ├── config.cpp
+│   │   │   └── config.h
+│   │   ├── renderer/
+│   │   │   ├── renderer.cpp
+│   │   │   ├── renderer.h
+│   │   │   ├── render_backend.h              # Abstract interface
+│   │   │   ├── render_backend_opengl.cpp     # OpenGL implementation
+│   │   │   ├── render_backend_opengl.h
+│   │   │   ├── render_backend_dx11.cpp       # TODO stub
+│   │   │   ├── render_backend_dx11.h
+│   │   │   ├── render_backend_dx12.cpp       # TODO stub
+│   │   │   ├── render_backend_dx12.h
+│   │   │   ├── shader_compiler.cpp
+│   │   │   ├── shader_compiler.h
+│   │   │   ├── shader_language_parser.cpp
+│   │   │   ├── shader_language_parser.h
+│   │   │   ├── material.cpp
+│   │   │   ├── material.h
+│   │   │   ├── mesh.cpp
+│   │   │   ├── mesh.h
+│   │   │   ├── texture.cpp
+│   │   │   ├── texture.h
+│   │   │   ├── framebuffer.cpp
+│   │   │   ├── framebuffer.h
+│   │   │   ├── post_process.cpp
+│   │   │   ├── post_process.h
+│   │   │   ├── lighting.cpp
+│   │   │   └── lighting.h
+│   │   ├── scene/
+│   │   │   ├── scene.cpp
+│   │   │   ├── scene.h
+│   │   │   ├── workspace.cpp
+│   │   │   ├── workspace.h
+│   │   │   ├── instance.cpp
+│   │   │   ├── instance.h
+│   │   │   ├── part.cpp
+│   │   │   ├── part.h
+│   │   │   ├── model.cpp
+│   │   │   ├── model.h
+│   │   │   ├── light.cpp
+│   │   │   ├── light.h
+│   │   │   ├── camera.cpp
+│   │   │   ├── camera.h
+│   │   │   ├── script_instance.cpp
+│   │   │   ├── script_instance.h
+│   │   │   ├── sound.cpp
+│   │   │   ├── sound.h
+│   │   │   ├── particle_emitter.cpp
+│   │   │   └── particle_emitter.h
+│   │   ├── ecs/
+│   │   │   ├── entity_manager.cpp
+│   │   │   ├── entity_manager.h
+│   │   │   ├── component_registry.cpp
+│   │   │   ├── component_registry.h
+│   │   │   ├── component_transform.cpp
+│   │   │   ├── component_transform.h
+│   │   │   ├── component_mesh.cpp
+│   │   │   ├── component_mesh.h
+│   │   │   ├── component_physics.cpp
+│   │   │   ├── component_physics.h
+│   │   │   ├── component_script.cpp
+│   │   │   ├── component_script.h
+│   │   │   ├── component_light.cpp
+│   │   │   ├── component_light.h
+│   │   │   ├── component_audio.cpp
+│   │   │   ├── component_audio.h
+│   │   │   ├── system_render.cpp
+│   │   │   ├── system_render.h
+│   │   │   ├── system_physics.cpp
+│   │   │   ├── system_physics.h
+│   │   │   ├── system_script.cpp
+│   │   │   ├── system_script.h
+│   │   │   ├── system_audio.cpp
+│   │   │   └── system_audio.h
+│   │   ├── physics/
+│   │   │   ├── physics_world.cpp
+│   │   │   ├── physics_world.h
+│   │   │   ├── physics_body.cpp
+│   │   │   ├── physics_body.h
+│   │   │   ├── collision_mesh.cpp
+│   │   │   ├── collision_mesh.h
+│   │   │   ├── raycast.cpp
+│   │   │   └── raycast.h
+│   │   ├── audio/
+│   │   │   ├── audio_engine.cpp
+│   │   │   ├── audio_engine.h
+│   │   │   ├── audio_backend.h
+│   │   │   ├── audio_backend_fmod.cpp
+│   │   │   ├── audio_backend_fmod.h
+│   │   │   ├── audio_backend_miniaudio.cpp
+│   │   │   ├── audio_backend_miniaudio.h
+│   │   │   ├── sound_bank.cpp
+│   │   │   ├── sound_bank.h
+│   │   │   ├── spatial_audio.cpp
+│   │   │   └── spatial_audio.h
+│   │   ├── scripting/
+│   │   │   ├── luau_vm.cpp
+│   │   │   ├── luau_vm.h
+│   │   │   ├── luau_bindings.cpp
+│   │   │   ├── luau_bindings.h
+│   │   │   ├── luau_services.cpp
+│   │   │   ├── luau_services.h
+│   │   │   ├── luau_api_workspace.cpp
+│   │   │   ├── luau_api_workspace.h
+│   │   │   ├── luau_api_physics.cpp
+│   │   │   ├── luau_api_physics.h
+│   │   │   ├── luau_api_audio.cpp
+│   │   │   ├── luau_api_audio.h
+│   │   │   ├── luau_api_render.cpp
+│   │   │   ├── luau_api_render.h
+│   │   │   ├── luau_api_input.cpp
+│   │   │   ├── luau_api_input.h
+│   │   │   └── f3d_framework/
+│   │   │       ├── framework.h
+│   │   │       ├── framework.cpp
+│   │   │       ├── init.luau
+│   │   │       ├── vector3.luau
+│   │   │       ├── cframe.luau
+│   │   │       ├── color3.luau
+│   │   │       ├── run_service.luau
+│   │   │       ├── sound_service.luau
+│   │   │       ├── lighting_service.luau
+│   │   │       ├── input_service.luau
+│   │   │       ├── tween_service.luau
+│   │   │       └── fmod_wrapper.luau
+│   │   ├── input/
+│   │   │   ├── input_manager.cpp
+│   │   │   ├── input_manager.h
+│   │   │   ├── keyboard.cpp
+│   │   │   ├── keyboard.h
+│   │   │   ├── mouse.cpp
+│   │   │   ├── mouse.h
+│   │   │   ├── gamepad.cpp
+│   │   │   └── gamepad.h
+│   │   ├── assets/
+│   │   │   ├── asset_manager.cpp
+│   │   │   ├── asset_manager.h
+│   │   │   ├── asset_loader.cpp
+│   │   │   ├── asset_loader.h
+│   │   │   ├── asset_importer_gltf.cpp
+│   │   │   ├── asset_importer_gltf.h
+│   │   │   ├── asset_importer_texture.cpp
+│   │   │   ├── asset_importer_texture.h
+│   │   │   ├── asset_importer_audio.cpp
+│   │   │   ├── asset_importer_audio.h
+│   │   │   ├── asset_streamer.cpp
+│   │   │   ├── asset_streamer.h
+│   │   │   ├── asset_pack.cpp
+│   │   │   └── asset_pack.h
+│   │   └── math/
+│   │       ├── vector2.cpp
+│   │       ├── vector2.h
+│   │       ├── vector3.cpp
+│   │       ├── vector3.h
+│   │       ├── vector4.cpp
+│   │       ├── vector4.h
+│   │       ├── matrix4x4.cpp
+│   │       ├── matrix4x4.h
+│   │       ├── quaternion.cpp
+│   │       ├── quaternion.h
+│   │       ├── aabb.cpp
+│   │       ├── aabb.h
+│   │       ├── ray.cpp
+│   │       └── ray.h
+│   ├── editor/
+│   │   ├── editor_app.cpp
+│   │   ├── editor_app.h
+│   │   ├── editor_main.cpp
+│   │   ├── ui/
+│   │   │   ├── editor_ui.cpp
+│   │   │   ├── editor_ui.h
+│   │   │   ├── dockspace.cpp
+│   │   │   ├── dockspace.h
+│   │   │   ├── main_menu_bar.cpp
+│   │   │   ├── main_menu_bar.h
+│   │   │   ├── toolbar.cpp
+│   │   │   ├── toolbar.h
+│   │   │   ├── viewport_panel.cpp
+│   │   │   ├── viewport_panel.h
+│   │   │   ├── scene_tree_panel.cpp
+│   │   │   ├── scene_tree_panel.h
+│   │   │   ├── inspector_panel.cpp
+│   │   │   ├── inspector_panel.h
+│   │   │   ├── project_panel.cpp
+│   │   │   ├── project_panel.h
+│   │   │   ├── console_panel.cpp
+│   │   │   ├── console_panel.h
+│   │   │   ├── asset_browser_panel.cpp
+│   │   │   ├── asset_browser_panel.h
+│   │   │   ├── preferences_window.cpp
+│   │   │   ├── preferences_window.h
+│   │   │   ├── new_project_dialog.cpp
+│   │   │   ├── new_project_dialog.h
+│   │   │   ├── build_dialog.cpp
+│   │   │   ├── build_dialog.h
+│   │   │   ├── about_dialog.cpp
+│   │   │   ├── about_dialog.h
+│   │   │   ├── macos_theme.cpp
+│   │   │   └── macos_theme.h
+│   │   ├── gizmos/
+│   │   │   ├── gizmo_manager.cpp
+│   │   │   ├── gizmo_manager.h
+│   │   │   ├── translate_gizmo.cpp
+│   │   │   ├── translate_gizmo.h
+│   │   │   ├── rotate_gizmo.cpp
+│   │   │   ├── rotate_gizmo.h
+│   │   │   ├── scale_gizmo.cpp
+│   │   │   └── scale_gizmo.h
+│   │   ├── tools/
+│   │   │   ├── select_tool.cpp
+│   │   │   ├── select_tool.h
+│   │   │   ├── move_tool.cpp
+│   │   │   ├── move_tool.h
+│   │   │   ├── rotate_tool.cpp
+│   │   │   ├── rotate_tool.h
+│   │   │   ├── scale_tool.cpp
+│   │   │   ├── scale_tool.h
+│   │   │   ├── terrain_tool.cpp
+│   │   │   └── terrain_tool.h
+│   │   └── serialization/
+│   │       ├── f3d_serializer.cpp
+│   │       ├── f3d_serializer.h
+│   │       ├── f3d_deserializer.cpp
+│   │       └── f3d_deserializer.h
+│   └── game_runtime/
+│       ├── game_app.cpp
+│       ├── game_app.h
+│       ├── game_main.cpp
+│       └── game_loader.cpp
+│       └── game_loader.h
+├── tools/
+│   ├── shader_compiler_tool/
+│   │   ├── main.cpp
+│   │   └── shader_compiler_tool.cpp
+│   └── packer_tool/
+│       ├── main.cpp
+│       └── packer_tool.cpp
+├── include/
+│   └── forestium3d/
+│       └── engine.h                    # Public C++ API header
+├── third_party/
+│   └── .gitkeep
+├── docs/
+│   └── .gitkeep
+├── tests/
+│   └── .gitkeep
+├── setup.bat
+├── setup.sh
+├── build.bat
+├── build.sh
+├── build_game.bat
+├── build_game.sh
+├── vcpkg.json
+├── compile_flags.txt
+└── .clang-format
+```
+
+---
+
+## 1. Rendering System
+
+### 1.1 Renderer Backend Architecture
+
+Implement an abstract render_backend interface class with the following virtual methods:
+
+- init(void* window_handle, int width, int height)
+- shutdown()
+- begin_frame()
+- end_frame()
+- clear(float r, float g, float b, float a)
+- set_viewport(int x, int y, int width, int height)
+- draw_mesh(const mesh& m, const material& mat, const matrix4x4& transform)
+- set_camera(const vector3& pos, const quaternion& rot, float fov, float near_plane, float far_plane)
+- resize(int width, int height)
+- present()
+- create_shader(const char* vertex_src, const char* fragment_src)
+- destroy_shader(shader_program* shader)
+- create_texture(int width, int height, int channels, const void* data)
+- destroy_texture(texture_handle* tex)
+- create_framebuffer(int width, int height)
+- destroy_framebuffer(framebuffer_handle* fb)
+- bind_framebuffer(framebuffer_handle* fb)
+- unbind_framebuffer()
+- set_depth_test(bool enabled)
+- set_blend_mode(blend_mode mode)
+- set_cull_mode(cull_mode mode)
+- set_wireframe(bool enabled)
+- draw_fullscreen_quad()
+- get_backend_name()
+
+Implement render_backend_opengl as the primary backend. Create stub classes render_backend_dx11 and render_backend_dx12 that log "TODO: not implemented" for all methods.
+
+Use OpenGL 4.6 Core Profile via GLAD loader. Use GLFW for window creation and input.
+
+### 1.2 Custom Shader Language (f3d_shader)
+
+Design a Luau-like shading language. File extension: .f3dshader.
+
+Example syntax:
+
+```
+shader "unlit"
+    prop main_color : vec3 = (1.0, 1.0, 1.0)
+    prop main_texture : sampler2d
+
+    func vertex()
+        var world_pos = model * vec4(vertex_position, 1.0)
+        var view_pos = view * world_pos
+        var clip_pos = projection * view_pos
+
+        varyings.uv = vertex_uv
+        varyings.world_normal = mat3(model) * vertex_normal
+
+        return clip_pos
+    end
+
+    func fragment()
+        var tex_color = texture(main_texture, varyings.uv)
+        var final_color = tex_color.rgb * main_color
+
+        return vec4(final_color, tex_color.a)
+    end
+end
+```
+
+Language features:
+- shader "name" ... end block
+- prop name : type [= default_value] for uniform properties
+- func vertex() ... end and func fragment() ... end
+- Built-in types: float, vec2, vec3, vec4, mat3, mat4, sampler2d, samplerCube
+- Built-in variables (vertex stage): vertex_position, vertex_normal, vertex_uv, vertex_color, bone_indices, bone_weights
+- Built-in variables (fragment stage): frag_coord, front_facing
+- Built-in uniforms: model, view, projection, mvp, time, screen_size, camera_position
+- Varyings declared in varyings. namespace, auto-interpolated
+- Standard operators: +, -, *, /, dot(), cross(), normalize(), length(), reflect(), refract(), pow(), clamp(), lerp() (alias for mix), step(), smoothstep(), texture(), textureCube()
+- Comments: -- single line, --[[ ... ]] block
+- Conditionals: if ... then ... elseif ... then ... else ... end
+- Loops: for i = 0, 10 do ... end
+
+Implement shader_language_parser that:
+1. Tokenizes .f3dshader source
+2. Builds AST
+3. Type-checks
+4. Generates GLSL 4.6 output (and later HLSL when DX backend is implemented)
+5. Reports errors with line numbers and suggestions
+
+The parser should be in src/engine/renderer/shader_language_parser.cpp/h.
+
+The shader_compiler class compiles generated GLSL at runtime using OpenGL, caches compiled programs, and supports hot-reload in editor mode.
+
+### 1.3 Material System
+
+Current: texture-based materials only.
+
+Fields:
+- name: string
+- shader: shader_program*
+- diffuse_map: texture_handle* (optional)
+- normal_map: texture_handle* (optional)
+- specular_map: texture_handle* (optional)
+- diffuse_color: vector3
+- shininess: float
+- transparent: bool
+- double_sided: bool
+
+PBR support is a future TODO. Keep the material struct extensible.
+
+### 1.4 Lighting
+
+Dynamic basic lighting system:
+
+Point light fields:
+- position: vector3
+- color: vector3
+- intensity: float
+- range: float
+- cast_shadows: bool (TODO)
+
+Directional light fields:
+- direction: vector3
+- color: vector3
+- intensity: float
+- cast_shadows: bool (TODO)
+
+Spot light fields:
+- position: vector3
+- direction: vector3
+- color: vector3
+- intensity: float
+- range: float
+- inner_angle: float
+- outer_angle: float
+
+Lighting is computed per-fragment in shaders. Support up to:
+- 8 point lights
+- 4 spot lights
+- 1 directional light
+
+Static lights are baked into lightmaps (TODO). For now, all lights are dynamic.
+
+### 1.5 Post-Processing
+
+Separate simpler system from the shader language. Post-process effects are hardcoded C++ classes that operate on framebuffers.
+
+Built-in effects (day one):
+- bloom_effect: threshold, intensity, iterations
+- fxaa_effect: quality preset
+- tone_mapping_effect: exposure, gamma
+- vignette_effect: intensity, smoothness
+- chromatic_aberration_effect: intensity
+- film_grain_effect: intensity, speed
+
+Post-process chain is configurable per-level via Luau or editor UI. Render order: scene -> bloom -> tone mapping -> FXAA -> vignette -> chromatic aberration -> film grain.
+
+### 1.6 Mesh and Texture
+
+Mesh format: interleaved vertex buffer (position, normal, uv, color, tangent).
+Index buffer for indexed drawing.
+Support for skeletal animation (bone weights/indices in vertex format, skinning in shader).
+
+Texture loading: PNG, JPG via stb_image. Support textures embedded in GLB/GLTF.
+Texture formats: RGBA8, RGB8, RG8, R8. Mipmaps auto-generated.
+
+---
+
+## 2. Scene System (Roblox Studio-Style)
+
+### 2.1 Instance Hierarchy
+
+The scene graph is a tree of instance objects, similar to Roblox's Instance class.
+
+Core instance fields:
+- name: string
+- class_name: string
+- parent: instance*
+- children: vector<instance*>
+- archivable: bool
+- locked: bool
+- visible: bool
+
+Core instance methods:
+- set_parent(instance* new_parent)
+- find_first_child(const string& child_name)
+- find_first_child_of_class(const string& class_name)
+- find_first_ancestor(const string& ancestor_name)
+- get_children()
+- get_descendants()
+- destroy()
+- clone()
+- register_properties(property_registry& registry)
+- on_property_changed(const string& property_name)
+
+Events:
+- child_added
+- child_removed
+- descendant_added
+- descendant_removed
+- ancestry_changed
+- destroyed
+
+### 2.2 Workspace
+
+workspace is the root of the scene tree, equivalent to Roblox's Workspace.
+
+Fields:
+- gravity: vector3
+- distributed_game_time: float
+
+Methods:
+- set_gravity(const vector3& g)
+- get_gravity()
+- raycast(const ray& r, float max_distance)
+
+### 2.3 Part (3D Object)
+
+Transform fields:
+- position: vector3
+- size: vector3
+- rotation: vector3 (Euler angles in degrees)
+- orientation: quaternion
+- pivot_offset: vector3
+
+Appearance fields:
+- color: vector3
+- transparency: float
+- reflectance: float
+- surface_material: material_enum
+- texture: texture_handle*
+
+Physics fields:
+- anchored: bool
+- can_collide: bool
+- can_query: bool
+- can_touch: bool
+- mass: float
+- velocity: vector3
+- angular_velocity: vector3
+
+Shape fields:
+- shape: part_shape_enum (block, sphere, cylinder, wedge, corner_wedge, mesh)
+- custom_mesh: mesh*
+
+Events:
+- touched
+- touch_ended
+- clicked
+
+Default: can_collide = true, anchored = false, can_query = true, can_touch = true.
+Any 3D object can be a physics object. Physics is enabled by default. Disable via anchored = true (kinematic) or can_collide = false (no collision).
+
+### 2.4 Light Instances
+
+point_light_instance fields:
+- color: vector3
+- brightness: float
+- range: float
+- shadows_enabled: bool
+- shadow_softness: float
+
+directional_light_instance fields:
+- direction: vector3
+- color: vector3
+- brightness: float
+- shadows_enabled: bool
+- shadow_softness: float
+
+spot_light_instance fields:
+- color: vector3
+- brightness: float
+- range: float
+- angle: float
+- shadows_enabled: bool
+
+### 2.5 Camera
+
+Fields:
+- position: vector3
+- rotation: quaternion
+- field_of_view: float
+- near_plane: float
+- far_plane: float
+- camera_type: camera_type_enum (fixed, attach, scriptable, watch)
+
+Methods:
+- get_view_matrix()
+- get_projection_matrix(float aspect)
+- screen_point_to_ray(const vector2& screen_pos)
+- world_to_screen_point(const vector3& world_pos)
+- viewport_to_world_point(const vector3& viewport_pos)
+
+### 2.6 Script Instance
+
+Fields:
+- source_path: string
+- source_code: string
+- enabled: bool
+- run_context: script_run_context_enum (server, client, editor)
+
+Methods:
+- load_source(const string& path)
+- execute()
+- stop()
+
+### 2.7 Sound
+
+Fields:
+- sound_id: string (path to audio file)
+- volume: float
+- pitch: float
+- playing: bool
+- looped: bool
+- spatial: bool
+- roll_off_mode: float
+- max_distance: float
+- min_distance: float
+
+Methods:
+- play()
+- stop()
+- pause()
+- resume()
+- set_time(float seconds)
+- get_time()
+- get_length()
+
+---
+
+## 3. ECS System
+
+While the scene graph is tree-based (Roblox-style), the engine also maintains an ECS for efficient system processing.
+
+### 3.1 Entity Manager
+
+entity_id = uint32_t
+
+Methods:
+- create_entity()
+- destroy_entity(entity_id id)
+- is_alive(entity_id id)
+- add_component<T>(entity_id id, T component)
+- remove_component<T>(entity_id id)
+- get_component<T>(entity_id id)
+- has_component<T>(entity_id id)
+- query_entities<T>()
+- get_entity_for_instance(instance* inst)
+- get_instance_for_entity(entity_id id)
+
+### 3.2 Components
+
+component_transform:
+- position: vector3
+- rotation: quaternion
+- scale: vector3
+- world_matrix: matrix4x4
+- dirty: bool
+
+component_mesh:
+- mesh_data: mesh*
+- mat: material*
+- visible: bool
+- layer_mask: uint32_t
+
+component_physics:
+- body: physics_body_handle*
+- is_kinematic: bool
+- is_trigger: bool
+- mass: float
+- friction: float
+- restitution: float
+- velocity: vector3
+- angular_velocity: vector3
+
+component_script:
+- script: script_instance*
+- thread: luau_thread*
+- running: bool
+- last_execution_time: float
+
+component_light:
+- type: light_type_enum
+- color: vector3
+- intensity: float
+- range: float
+- direction: vector3 (for directional/spot)
+- spot_angle: float
+- cast_shadows: bool
+
+component_audio:
+- sound: sound_instance*
+- source: audio_source_handle*
+- is_playing: bool
+- is_spatial: bool
+
+### 3.3 Systems
+
+Systems process entities with specific component combinations:
+
+- system_render: Iterates component_transform + component_mesh, submits to renderer
+- system_physics: Iterates component_transform + component_physics, syncs with Jolt
+- system_script: Iterates component_script, executes Luau scripts on Heartbeat
+- system_audio: Iterates component_transform + component_audio, updates 3D audio positions
+- system_light: Iterates component_light, updates renderer light list
+
+Systems run on the job system. system_render runs on main thread (OpenGL context). Others can run on worker threads.
+
+---
+
+## 4. Physics (Jolt Physics)
+
+### 4.1 Integration
+
+Integrate Jolt Physics as the physics engine. Use Jolt's build or prebuilt static library.
+
+### 4.2 Physics World
+
+Methods:
+- init()
+- shutdown()
+- step(float delta_time, int sub_steps = 4)
+- create_body(const body_creation_settings& settings)
+- destroy_body(physics_body_handle* body)
+- set_body_position(physics_body_handle* body, const vector3& pos)
+- set_body_rotation(physics_body_handle* body, const quaternion& rot)
+- set_body_velocity(physics_body_handle* body, const vector3& vel)
+- set_body_angular_velocity(physics_body_handle* body, const vector3& ang_vel)
+- apply_impulse(physics_body_handle* body, const vector3& impulse)
+- apply_force(physics_body_handle* body, const vector3& force)
+- get_body_position(physics_body_handle* body)
+- get_body_rotation(physics_body_handle* body)
+- get_body_velocity(physics_body_handle* body)
+- set_gravity(const vector3& g)
+- get_gravity()
+- raycast(const ray& r, float max_distance)
+- shapecast(const shape& s, const vector3& pos, const quaternion& rot, const vector3& direction, float max_distance)
+- add_collision_listener(collision_listener* listener)
+- remove_collision_listener(collision_listener* listener)
+
+### 4.3 Collision from Mesh
+
+For GLB/GLTF models, extract polygonal mesh data and generate collision shapes:
+- Convex hull for dynamic objects
+- Mesh shape (trimesh) for static objects
+- Auto-detect: if anchored = true, use trimesh; if anchored = false, use convex hull
+
+Use Jolt's MeshShapeSettings for trimesh and ConvexHullShapeSettings for convex hull.
+
+### 4.4 Coordinate System
+
+Use Y-up, right-handed coordinate system (standard OpenGL). Jolt uses the same by default.
+
+---
+
+## 5. Audio System
+
+### 5.1 Architecture
+
+Methods:
+- init(audio_backend_type backend)
+- shutdown()
+- update(float delta_time)
+- create_source(const string& path)
+- destroy_source(audio_source_handle* source)
+- play_source(audio_source_handle* source)
+- stop_source(audio_source_handle* source)
+- pause_source(audio_source_handle* source)
+- resume_source(audio_source_handle* source)
+- set_source_position(audio_source_handle* source, const vector3& pos)
+- set_source_velocity(audio_source_handle* source, const vector3& vel)
+- set_source_volume(audio_source_handle* source, float volume)
+- set_source_pitch(audio_source_handle* source, float pitch)
+- set_source_loop(audio_source_handle* source, bool loop)
+- set_source_spatial(audio_source_handle* source, bool spatial)
+- set_source_min_distance(audio_source_handle* source, float dist)
+- set_source_max_distance(audio_source_handle* source, float dist)
+- set_listener_position(const vector3& pos)
+- set_listener_orientation(const quaternion& rot)
+- set_listener_velocity(const vector3& vel)
+- set_master_volume(float volume)
+- load_bank(const string& bank_path)
+- unload_bank(const string& bank_path)
+- set_reverb(float reverb_level)
+
+### 5.2 Backends
+
+Primary: FMOD
+- Full FMOD Studio API integration
+- Support for FMOD banks, events, parameters
+- Spatial audio with HRTF
+- Dynamic mixing, ducking, reverb zones
+
+Fallback: miniaudio.h
+- Single-header library, no external dependencies
+- Basic spatial audio (panning, distance attenuation)
+- WAV, OGG, MP3 playback
+- No bank system -- direct file loading
+
+The engine MUST NOT depend on FMOD at compile time. Use dynamic loading or conditional compilation. If FMOD DLLs are not found, automatically fall back to miniaudio. The Luau API abstracts both backends -- game scripts never know which backend is active.
+
+### 5.3 Spatial Audio
+
+3D positional audio with:
+- Distance attenuation (linear, inverse, exponential)
+- Doppler effect
+- Occlusion (sounds muffled through walls, TODO)
+- Reverb zones (TODO)
+
+---
+
+## 6. Scripting (Luau)
+
+### 6.1 Luau VM Integration
+
+Integrate the official Luau VM (Roblox's fork of Lua). Use Luau's C API for embedding.
+
+Methods:
+- init()
+- shutdown()
+- create_state()
+- close_state(lua_state* state)
+- load_script(lua_state* state, const string& source, const string& name)
+- execute_script(lua_state* state)
+- set_global(lua_state* state, const string& name, lua_value value)
+- get_global(lua_state* state, const string& name)
+- register_function(lua_state* state, const string& name, lua_cfunction func)
+- register_library(lua_state* state, const string& name, const luaL_reg* funcs)
+- yield_thread(lua_state* state)
+- resume_thread(lua_state* state)
+- set_interrupt_hook(lua_state* state, int instruction_count, lua_hook hook)
+- get_stack_trace(lua_state* state)
+
+### 6.2 Luau Bindings
+
+Bind C++ engine APIs to Luau using Luau's C API. Create userdata wrappers for engine objects.
+
+Key bindings:
+- game global (equivalent to Roblox's game)
+- workspace global
+- script global (current script reference)
+- Vector3, CFrame, Color3, UDim, UDim2, Ray, Region3 types
+- Instance methods: FindFirstChild, FindFirstChildOfClass, GetChildren, GetDescendants, Clone, Destroy, WaitForChild
+- Property getters/setters via __index/__newindex
+- Event connections via Connect, Wait, Disconnect
+
+### 6.3 f3d Framework (Luau Standard Library)
+
+Provide a built-in Luau framework at src/engine/scripting/f3d_framework/ that is auto-loaded into every script context.
+
+init.lua -- Bootstraps the framework, sets up globals, imports all modules.
+
+vector3.lua -- Vector3 type with methods: new(x, y, z), Magnitude, Unit, Dot, Cross, Lerp, Floor, Ceil, Abs, Max, Min, Angle, Project, Reject, Reflect, Rotate, FuzzyEq, Lerp, Slerp. Metamethods for +, -, *, /, ==, tostring.
+
+cframe.lua -- CFrame (Coordinate Frame) type: position + orientation. Methods: new(pos), new(pos, look_at), Angles(rx, ry, rz), ToEulerAngles, ToOrientation, Inverse, Lerp, ToWorldSpace, ToObjectSpace, PointToWorldSpace, PointToObjectSpace, VectorToWorldSpace, VectorToObjectSpace, GetComponents. Metamethods for *, +, -, ==, tostring.
+
+color3.lua -- Color3 type: new(r, g, b), from_rgb(r, g, b), from_hsv(h, s, v), Lerp, ToHSV. Properties: R, G, B.
+
+run_service.lua -- Provides RunService equivalent with Heartbeat, RenderStepped, Stepped callbacks.
+
+sound_service.lua -- SoundService for playing sounds with PlaySound and PlaySoundAtPosition.
+
+lighting_service.lua -- LightingService for controlling ambient, brightness, clock_time, fog.
+
+input_service.lua -- InputService for InputBegan, InputEnded, MouseButton1Down, etc.
+
+tween_service.lua -- TweenService for animations with Create, Play.
+
+fmod_wrapper.lua -- Abstracts FMOD/miniaudio backend with PlayEvent, SetParameter, LoadBank, PlayOneShot.
+
+### 6.4 Script Execution Model
+
+- Scripts run in separate Luau threads (coroutines)
+- Heartbeat callback runs every frame with auto-computed delta_time
+- RenderStepped runs before rendering
+- Stepped runs before physics step
+- Scripts can yield with wait(seconds) or task.wait(seconds)
+- Infinite loop protection: interrupt hook after 1,000,000 instructions, warning logged
+- Script errors are caught and logged to console, script continues if possible
+
+---
+
+## 7. Input System
+
+Methods:
+- init(window* w)
+- update()
+- shutdown()
+- is_key_pressed(key_code key)
+- is_key_held(key_code key)
+- is_key_released(key_code key)
+- is_mouse_button_pressed(mouse_button button)
+- is_mouse_button_held(mouse_button button)
+- is_mouse_button_released(mouse_button button)
+- get_mouse_position()
+- get_mouse_delta()
+- get_mouse_scroll()
+- set_mouse_mode(mouse_mode_enum mode) -- normal, hidden, locked
+- is_gamepad_connected(int gamepad_id)
+- is_gamepad_button_pressed(int gamepad_id, gamepad_button button)
+- get_gamepad_axis(int gamepad_id, gamepad_axis axis)
+- set_gamepad_vibration(int gamepad_id, float left_motor, float right_motor)
+
+Events:
+- key_pressed
+- key_released
+- mouse_button_pressed
+- mouse_button_released
+- mouse_moved
+- mouse_scrolled
+- gamepad_button_pressed
+- gamepad_axis_moved
+
+Key codes use a custom enum matching common keys (W, A, S, D, Space, Escape, etc.).
+
+---
+
+## 8. Asset System
+
+### 8.1 Asset Manager
+
+Methods:
+- init(const string& project_path)
+- shutdown()
+- load<T>(const string& path)
+- unload<T>(const string& path)
+- get<T>(const string& path)
+- is_loaded(const string& path)
+- reload(const string& path)
+- reload_all()
+- load_async(const string& path, asset_load_callback callback)
+- process_async_loads()
+- stream_level(const string& level_path)
+- unload_level(const string& level_path)
+
+### 8.2 Supported Formats
+
+| Type | Formats | Notes |
+|------|---------|-------|
+| 3D Models | .glb, .gltf | Full glTF 2.0 support, embedded textures |
+| Textures | .png, .jpg | Embedded in glb/gltf supported |
+| Audio | .ogg, .mp3, .wav | |
+| Shaders | .f3dshader | Custom language |
+| Scenes | .f3d | Text format |
+| Scripts | .lua | Luau source |
+| Materials | .f3dmat | JSON-like material definition |
+| Fonts | .ttf, .otf | Via stb_truetype |
+
+### 8.3 Asset Importer
+
+Editor imports assets via drag-and-drop or Import menu. The importer:
+1. Copies file to project assets/ folder
+2. For glTF/glB: extracts textures, generates collision mesh, creates engine mesh
+3. For textures: generates mipmaps, compresses if needed
+4. For audio: validates format, generates preview
+5. Creates .f3dmeta metadata file alongside asset
+
+### 8.4 Asset Streaming
+
+Levels are streamed on demand:
+- When player approaches a zone, async load the zone's assets
+- Keep a memory budget, unload distant assets
+- Use reference counting for shared assets
+
+### 8.5 Asset Packing
+
+Build process packs assets into XOR-encrypted archives:
+- Multiple .pak files: core.pak, levels.pak, audio.pak, textures.pak
+- XOR encryption with project-specific key (stored in executable, obfuscated)
+- Optional: use 7zip for compression before XOR (tool-based, configurable)
+- Archive index stored at start of .pak for fast lookup
+
+---
+
+## 9. Level Editor
+
+### 9.1 Editor Architecture
+
+The editor is an in-engine mode. Pressing ~ or F1 toggles editor overlay. Game files do NOT contain editor data.
+
+Methods:
+- init()
+- run()
+- shutdown()
+- enter_play_mode()
+- pause_play_mode()
+- stop_play_mode()
+- is_in_play_mode()
+- is_paused()
+- save_project()
+- load_project(const string& path)
+- new_project(const string& name, const string& path)
+- build_game(const build_settings& settings)
+
+### 9.2 UI System (Dear ImGui)
+
+Use Dear ImGui (MIT license) for all editor UI. Style it to look macOS-like and professional:
+- Rounded corners on windows and buttons
+- Subtle shadows
+- San Francisco-like font (Inter or system default)
+- Clean spacing, generous padding
+- Dark theme with subtle blue accent color
+- Smooth animations where possible
+
+Implement macos_theme.cpp that configures ImGui style to match macOS aesthetic.
+
+### 9.3 Editor Panels
+
+Main Menu Bar:
+- File: New Project, Open Project, Save, Save As, Import Asset, Build, Exit
+- Edit: Undo, Redo, Cut, Copy, Paste, Duplicate, Delete, Preferences
+- View: Viewport, Scene Tree, Inspector, Project, Console, Asset Browser, Fullscreen
+- Game: Play, Pause, Stop, Play Maximized, Play in Window
+- Tools: Shader Editor, Material Editor, Animation Editor (TODO), Terrain Editor (TODO)
+- Help: Documentation, About
+
+Viewport Panel:
+- Main 3D view with game scene
+- Camera controls: WASD fly (like Unity/Godot), right-click to look, scroll to zoom speed
+- View modes: Lit, Unlit, Wireframe, Collision
+- Grid: visible, configurable size and snap
+- Gizmos: Translate (W), Rotate (E), Scale (R) -- local/world toggle
+- Stats overlay: FPS, draw calls, triangle count, entity count
+- Focus selected: F key
+
+Scene Tree Panel (left):
+- Hierarchical tree of all instances in workspace
+- Icons per class type (Part = cube, Light = bulb, Script = code, Camera = camera, Sound = speaker)
+- Expand/collapse arrows
+- Right-click: Rename, Duplicate, Delete, Group, Ungroup, Hide, Lock, Add Child, Copy Path
+- Drag and drop: reorder, reparent
+- Search/filter bar at top
+- Color-coded selection highlight
+
+Inspector Panel (right):
+- Properties of selected instance
+- Categories with collapsible headers: Transform, Appearance, Physics, Scripting, Tags
+- Property editors:
+  - Numbers: drag slider + exact input (Vector3 shows as 3 fields)
+  - Colors: RGB fields + color picker popup with hue/saturation square
+  - Booleans: toggle switch (macOS style)
+  - Enums: dropdown
+  - Strings: single-line input, expandable for multiline
+  - References: object picker (click -> select in scene tree)
+  - Assets: drag and drop from project panel, or browse button
+- Script property: shows path + Edit button (opens external editor) + Reload button
+- Material preview: small rotating sphere showing material
+- Add Component button at bottom
+
+Project Panel (bottom):
+- File browser of project assets
+- View modes: List (details) and Grid (thumbnails)
+- Folders: create, rename, delete, drag and drop
+- Right-click asset: Import, Reimport, Delete, Rename, Show in Explorer, Copy Path, Properties
+- Double-click: preview (3D model rotates, audio plays, image zooms)
+- Search bar
+- Filter by type buttons
+
+Console Panel (bottom, tab with Project):
+- Tabs: All, Log, Warnings, Errors, Script Output
+- Log entries with timestamp, source, message
+- Color coding: Info = white/gray, Warning = yellow, Error = red, Script = green
+- Click error -> jump to line in script
+- Click object reference -> select in scene
+- Command input at bottom with autocomplete
+- Clear button, filter search
+- Copy to clipboard
+
+Asset Browser Panel (optional, can be merged with Project):
+- Thumbnail grid of all importable assets
+- Categories: Models, Textures, Audio, Materials, Scripts, Prefabs
+- Drag and drop into scene
+
+### 9.4 Gizmos
+
+Implement 3D manipulation gizmos:
+- Translate: XYZ arrows (red/green/blue), plane handles (squares), snap to grid
+- Rotate: Circular rings per axis, free rotation sphere, snap to angle
+- Scale: XYZ handles, uniform scale center cube, snap
+- Gizmo size stays constant on screen regardless of distance
+- Highlight on hover
+
+### 9.5 Tools
+
+- Select Tool (Q): Click to select, box select, multi-select with Ctrl
+- Move Tool (W): Translate gizmo
+- Rotate Tool (E): Rotation gizmo
+- Scale Tool (R): Scale gizmo
+- Terrain Tool (T, TODO): Heightmap editing
+
+### 9.6 Viewport Camera
+
+- WASD fly (like Unity/Godot editor)
+- Right-click + drag to orbit around selection (if something selected) or free look
+- Middle-click + drag to pan
+- Scroll to adjust fly speed
+- F to focus on selected object
+- Number keys for preset views: 1=Front, 2=Back, 3=Left, 4=Right, 5=Top, 6=Bottom, 7=Perspective
+
+### 9.7 Play Mode
+
+- Press Play: viewport switches to game view, editor UI hides/dims
+- Same ~ key opens in-game console
+- Pause: game freezes, editor UI returns, can inspect scene state
+- Stop: reverts all changes made during play (or optionally keep them)
+- Play Maximized: game runs in maximized window
+- Play in Window: game runs in separate window
+
+### 9.8 Serialization (.f3d Format)
+
+Text-based scene format. Example:
+
+```f3d
+workspace "main_level" {
+    ambient = (0.1, 0.1, 0.15)
+    brightness = 0.5
+
+    part "floor" {
+        position = (0, -0.5, 0)
+        size = (20, 1, 20)
+        color = (0.3, 0.3, 0.35)
+        material = "concrete"
+        anchored = true
+        can_collide = true
+
+        texture "diffuse" {
+            path = "textures/concrete_diffuse.png"
+            scale = (2, 2)
+        }
+    }
+
+    part "wall" {
+        position = (-10, 5, 0)
+        size = (1, 10, 20)
+        color = (0.4, 0.4, 0.45)
+        anchored = true
+    }
+
+    point_light "room_light" {
+        position = (0, 8, 0)
+        color = (1.0, 0.95, 0.9)
+        brightness = 100
+        range = 25
+        shadows_enabled = false
+    }
+
+    camera "main_camera" {
+        position = (0, 5, -15)
+        rotation = (15, 0, 0)
+        field_of_view = 70
+    }
+
+    script "game_controller" {
+        source = "scripts/game_controller.lua"
+        run_context = "server"
+    }
+
+    sound "ambient_rain" {
+        sound_id = "audio/rain_loop.ogg"
+        volume = 0.6
+        looped = true
+        spatial = false
+        playing = true
+    }
+}
+```
+
+Parser requirements:
+- Hierarchical blocks with { }
+- Key-value pairs with =
+- Vectors: (x, y, z) or (x, y, z, w)
+- Strings: quoted or unquoted (if no spaces)
+- Numbers: int or float
+- Booleans: true, false
+- Comments: // single line, /* */ block
+- Arrays: [value1, value2, ...]
+- References: @object_name to reference another object
+
+### 9.9 Preferences
+
+Preferences window with categories:
+- General: Auto-save interval, default project location, language
+- Viewport: Default camera speed, grid size, grid snap, field of view
+- Audio: Master volume, editor sound effects
+- Input: Customizable shortcuts (show reference sheet)
+- Scripting: External editor path, font size, auto-complete
+- Build: Default output folder, compression level, icon path
+
+### 9.10 Notifications
+
+Toast notifications in top-right:
+- Auto-dismiss after 3 seconds
+- Types: success (green), info (blue), warning (yellow), error (red)
+- Events: Save complete, Build complete, Import done, Error occurred
+
+### 9.11 Dialogs
+
+- New Project: Name, location, template (Empty, First Person, Horror Starter)
+- Build: Platform (Windows/macOS/Linux), output folder, compression, icon
+- About: Engine version, credits, links to docs
+- Preferences: Tabbed settings window
+
+---
+
+## 10. Build System
+
+### 10.1 Build Scripts
+
+setup.bat (Windows) and setup.sh (Linux/macOS):
+
+Downloads and sets up all dependencies into ./libs/:
+
+1. Clone/pull vcpkg repository
+2. Install packages via vcpkg: glfw3, glad, joltphysics, stb, luau (or build from source), miniaudio (single header, download)
+3. Clone raylib (or use vcpkg if available)
+4. Download/build Luau from https://github.com/luau-lang/luau
+5. Set up environment variables
+6. Generate compile_flags.txt for clangd
+
+build.bat (Windows) and build.sh (Linux/macOS):
+
+Builds the engine and editor:
+1. Detect platform
+2. Set compiler to Clang
+3. Use vcpkg toolchain
+4. Compile all src/engine/ and src/editor/ files
+5. Link against all libs
+6. Output: bin/forestium3d_editor.exe (or .app on macOS)
+
+build_game.bat (Windows) and build_game.sh (Linux/macOS):
+
+Packages a game project:
+1. Read project settings from .f3dproj file
+2. Compile game runtime (src/game_runtime/)
+3. Copy engine binaries (without editor code)
+4. Process assets: import, optimize, pack into .pak files
+5. XOR encrypt .pak files with project key
+6. Optional: compress with 7zip before XOR
+7. Generate executable with embedded icon
+8. Output structure:
+```
+my_game/
+├── my_game.exe
+├── forestium3d.dll / libforestium3d.so
+├── luau_vm.dll
+├── fmod.dll (if using FMOD)
+├── assets/
+│   ├── core.pak
+│   ├── levels.pak
+│   ├── audio.pak
+│   └── textures.pak
+└── config.ini
+```
+
+### 10.2 Compiler and Build Tool
+
+- Compiler: Clang (LLVM)
+- Package Manager: vcpkg (NOT CMake as build system -- use raw Clang compilation or a simple build script)
+- Build files: compile_flags.txt for clangd, simple batch/shell scripts for building
+- No CMake -- the user explicitly requested NOT to use CMake
+
+Example compile_flags.txt:
+```
+-std=c++20
+-I./libs/glfw/include
+-I./libs/glad/include
+-I./libs/jolt
+-I./libs/luau
+-I./libs/raylib/src
+-I./libs/miniaudio
+-I./libs/stb
+-I./src
+-I./include
+-DGLFW_INCLUDE_NONE
+-DNOMINMAX
+-Wall
+-Wextra
+```
+
+### 10.3 Build Configuration
+
+Support debug/release builds via command line:
+- build.bat debug -- debug symbols, no optimization, asserts enabled
+- build.bat release -- optimized, no debug symbols, asserts disabled
+
+Same for .sh versions.
+
+---
+
+## 11. Console and Debug
+
+### 11.1 Console System
+
+In-game/editor console activated by ~ key (configurable).
+
+Methods:
+- init()
+- toggle()
+- is_visible()
+- execute_command(const string& cmd)
+- log(const string& msg, log_level level)
+- add_command(const string& name, console_command_func func)
+- get_history()
+- get_suggestions(const string& partial)
+
+Built-in commands:
+- help -- list all commands
+- fps -- show/hide FPS counter
+- debug on / debug off -- enable full debug mode
+- reload_shaders -- hot-reload all shaders
+- reload_scripts -- reload all Luau scripts
+- spawn <class_name> [name] -- spawn instance
+- teleport <x> <y> <z> -- teleport player/camera
+- set_time <hour> -- set lighting time
+- screenshot -- save screenshot
+- quit -- exit game
+- mem -- show memory usage
+- entities -- list all entities
+- profile on / profile off -- enable profiling
+
+### 11.2 Logger
+
+Custom logger (no spdlog dependency):
+
+Log levels: trace, debug, info, warning, error, fatal
+
+Methods:
+- init(const string& log_file_path)
+- shutdown()
+- log(log_level level, const string& category, const string& message)
+- trace(const string& msg)
+- debug(const string& msg)
+- info(const string& msg)
+- warning(const string& msg)
+- error(const string& msg)
+- fatal(const string& msg)
+- set_console_output(bool enabled)
+- set_file_output(bool enabled)
+- set_min_level(log_level level)
+- flush()
+
+Log format: [YYYY-MM-DD HH:MM:SS.mmm] [LEVEL] [CATEGORY] message
+
+### 11.3 Debug Mode
+
+Activated by launch argument --debug or console command debug on.
+
+Debug features:
+- Full .log file with verbose output
+- .pdb / .dSYM symbol generation (platform dependent)
+- .dmp crash dumps on fatal errors
+- Entity inspector (click entity in scene to see all components)
+- Wireframe overlay
+- Collision shape visualization
+- Light range visualization
+- Audio source visualization
+- Profiling HUD (frame time, system times, memory)
+- GPU profiling queries
+
+Debug mode is OFF by default. No performance impact when disabled.
+
+---
+
+## 12. Job System
+
+Methods:
+- init(int num_threads = -1) -- -1 = hardware concurrency
+- shutdown()
+- submit(job_func job)
+- submit_parallel(int count, function<void(int index)> job)
+- wait_for_all()
+- wait_for_counter(job_counter* counter)
+- get_thread_count()
+- get_worker_id() -- 0 = main thread
+
+Uses work-stealing queue per thread. Main thread can submit and process jobs.
+
+Systems using job system:
+- system_physics -- physics step on worker thread
+- system_audio -- audio mixing on worker thread
+- asset_loader -- async asset loading on worker threads
+- system_script -- script execution (main thread for OpenGL/Luau safety)
+
+---
+
+## 13. Memory Management
+
+Use a simple memory arena/region system for frame-allocated data:
+
+Methods:
+- init(size_t size)
+- shutdown()
+- allocate(size_t size, size_t alignment = 8)
+- reset()
+- get_used()
+- get_capacity()
+
+Use for:
+- Frame render data (transforms, draw commands)
+- Temporary allocations during level load
+- Particle data
+
+Use standard new/delete for long-lived objects. Luau has its own GC.
+
+---
+
+## 14. Math Library
+
+Custom math library (no GLM dependency):
+
+Types:
+- vector2 { float x, y; }
+- vector3 { float x, y, z; }
+- vector4 { float x, y, z, w; }
+- matrix4x4 { float m[16]; }
+- quaternion { float x, y, z, w; }
+- aabb { vector3 min, max; }
+- ray { vector3 origin, direction; }
+
+Implement all standard operations: addition, subtraction, scaling, dot product, cross product, normalization, length, distance, lerp, slerp, matrix multiplication, matrix-vector multiplication, matrix inversion, quaternion multiplication, quaternion-to-matrix, matrix-to-quaternion, etc.
+
+---
+
+## 15. Coordinate System
+
+- Y-up (standard for OpenGL, Roblox, Unity)
+- Right-handed
+- Degrees for angles in editor/scripts, radians internally
+
+---
+
+## 16. Game Runtime
+
+The game runtime is a stripped-down executable that loads and runs a packaged game:
+
+Methods:
+- init(const string& game_path)
+- run()
+- shutdown()
+- load_level(const string& level_path)
+- unload_level()
+
+The runtime:
+1. Reads config.ini
+2. Loads .pak archives
+3. Decrypts (XOR) and mounts archives
+4. Loads startup level
+5. Initializes all systems (renderer, physics, audio, scripting)
+6. Enters main loop
+7. On exit: cleanup
+
+No editor code is included in the runtime build.
+
+---
+
+## 17. Tools
+
+### 17.1 Shader Compiler Tool
+
+Command-line tool tools/shader_compiler_tool/:
+```
+shader_compiler_tool input.f3dshader output.glsl [--target hlsl]
+```
+Compiles .f3dshader to GLSL or HLSL for inspection.
+
+### 17.2 Packer Tool
+
+Command-line tool tools/packer_tool/:
+```
+packer_tool input_dir output.pak --key 0xDEADBEEF --compress
+```
+Packs a directory into an XOR-encrypted .pak file.
+
+---
+
+## 18. Platform Support
+
+### 18.1 Windows
+- Primary development platform
+- Visual Studio / VS Code + Clang
+- Win32 windowing (via GLFW)
+- DirectX 11/12 stubs ready for future implementation
+
+### 18.2 macOS
+- Metal renderer stub (future)
+- Xcode / VS Code + Clang
+- Cocoa windowing (via GLFW)
+- .app bundle generation
+
+### 18.3 Linux
+- X11/Wayland (via GLFW)
+- GCC or Clang
+- Standard ELF executable
+
+---
+
+## 19. Setup and Build Scripts
+
+### setup.bat
+Downloads and sets up all dependencies into ./libs/:
+1. Clone vcpkg
+2. Install packages: glfw3, glad, joltphysics, stb
+3. Clone Luau
+4. Download miniaudio.h
+5. Clone raylib
+6. Generate compile_flags.txt
+
+### setup.sh
+Same as setup.bat but for Linux/macOS.
+
+### build.bat
+Builds the engine and editor:
+1. Detect platform
+2. Set compiler to Clang
+3. Compile all src/engine/ and src/editor/ files
+4. Link against all libs
+5. Output: bin/forestium3d_editor.exe
+
+### build.sh
+Same as build.bat but for Linux/macOS.
+
+### build_game.bat
+Packages a game project:
+1. Read .f3dproj
+2. Compile game runtime
+3. Copy engine binaries (no editor)
+4. Process and pack assets into .pak files
+5. XOR encrypt
+6. Output distributable folder
+
+### build_game.sh
+Same as build_game.bat but for Linux/macOS.
+
+---
+
+## 20. Key Design Principles
+
+1. snake_case EVERYWHERE -- files, classes, functions, variables, macros
+2. No CMake -- use Clang + vcpkg + batch/shell scripts
+3. OpenGL primary, DX11/12 as TODO stubs
+4. Roblox-style scene graph + ECS hybrid
+5. Luau scripting with f3d framework
+6. FMOD primary, miniaudio fallback -- engine not dependent on FMOD at compile time
+7. macOS-like professional UI via Dear ImGui
+8. Text-based .f3d scene format
+9. XOR-encrypted multi-archive asset packing
+10. Job system for multithreading
+11. Custom Luau-like shader language compiling to GLSL
+12. Jolt Physics for collision and simulation
+13. Y-up, right-handed coordinate system
+14. C++20 standard
+15. Full in-engine editor -- game files don't contain editor data
